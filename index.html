@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestor de Proyectos</title>
+  <style>
+    :root {
+      --bg-main: #000000;
+      --card-bg: #1c1c1e;
+      --border-color: #2c2c2e;
+      --text-main: #ffffff;
+      --text-muted: #8e8e93;
+      
+      --blue: #0a84ff;
+      --purple: #bf5af2;
+      --red: #ff453a;
+      --yellow: #ffd60a;
+      --green: #30d158;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text-main); padding: 20px; max-width: 500px; margin: 0 auto; }
+
+    /* NAVEGACIÓN Y VISTAS */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .header-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .back-btn { background: none; border: none; color: var(--blue); font-size: 1rem; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+    /* MENU PRINCIPAL (GRID 2x2) */
+    .menu-title { text-align: center; font-size: 1.2rem; margin-top: 30px; margin-bottom: 40px; color: var(--text-main); font-weight: 600; }
+    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 30px; }
+    
+    .menu-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      min-height: 140px;
+    }
+
+    .menu-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+    }
+
+    .card-blue::before { background: var(--blue); }
+    .card-purple::before { background: var(--purple); }
+    .card-red::before { background: var(--red); }
+    .card-yellow::before { background: var(--yellow); }
+
+    .dot-icon { width: 32px; height: 32px; border-radius: 50%; margin-bottom: 12px; }
+    .dot-blue { background: var(--blue); box-shadow: 0 0 12px var(--blue); }
+    .dot-purple { background: var(--purple); box-shadow: 0 0 12px var(--purple); }
+    .dot-red { background: var(--red); box-shadow: 0 0 12px var(--red); }
+    .dot-yellow { background: var(--yellow); box-shadow: 0 0 12px var(--yellow); }
+
+    .card-title { font-size: 0.85rem; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; }
+
+    /* FORMULARIOS E INPUTS */
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; }
+    input, textarea {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      color-scheme: dark;
+    }
+    input:focus, textarea:focus { outline: none; border-color: var(--blue); }
+
+    .btn-submit {
+      width: 100%;
+      background: var(--blue);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 0.95rem;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    /* TARJETAS CONTENEDORAS */
+    .project-card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border-color);
+    }
+    .project-header { font-size: 1.1rem; font-weight: bold; margin-bottom: 6px; color: var(--blue); display: flex; justify-content: space-between; align-items: center; }
+    .project-info { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; }
+
+    .task-section { margin-top: 14px; border-top: 1px solid var(--border-color); padding-top: 12px; }
+    .task-input-row { display: flex; gap: 8px; margin-bottom: 12px; margin-top: 8px; }
+    .task-input-row input[type="text"] { flex: 1; }
+    .task-input-row input[type="date"] { width: 130px; }
+    .btn-add-task {
+      background: #2c2c2e;
+      color: var(--blue);
+      border: 1px solid var(--blue);
+      padding: 0 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* GALERÍA DE FOTOS */
+    .photo-section { margin-top: 16px; border-top: 1px dashed var(--border-color); padding-top: 12px; }
+    .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+    .photo-thumb {
+      width: 100%;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: #000;
+      cursor: pointer;
+    }
+    .btn-upload-photo {
+      display: inline-block;
+      background: #2c2c2e;
+      color: var(--blue);
+      border: 1px solid var(--blue);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+      margin-top: 6px;
+    }
+
+    /* VISOR/MODAL DE FOTOS EN PANTALLA COMPLETA */
+    .photo-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .photo-modal.active { display: flex; }
+    .photo-modal img {
+      max-width: 100%;
+      max-height: 80vh;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+    }
+    .photo-modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #2c2c2e;
+      color: #fff;
+      border: 1px solid var(--border-color);
+      font-size: 1.2rem;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    /* LISTA INTERACTIVA CON CÍRCULOS */
+    .task-list { list-style: none; }
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #262628;
+    }
+    .task-item:last-child { border-bottom: none; }
+
+    .circle-check {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .circle-check.checked {
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .circle-check.checked::after {
+      content: '✓';
+      color: #000;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .task-text { font-size: 0.9rem; flex: 1; }
+    .task-text.completed { text-decoration: line-through; color: var(--text-muted); }
+    .task-date { font-size: 0.75rem; color: var(--purple); font-weight: bold; }
+    .tag-badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: #2c2c2e; color: var(--text-muted); margin-left: 6px; }
+
+    /* ESTILOS DE PROYECTOS FINALIZADOS */
+    .finished-card {
+      cursor: pointer;
+      border-color: var(--yellow);
+      transition: background 0.2s;
+    }
+    .finished-card:hover { background: #242426; }
+    .toggle-icon { font-size: 0.8rem; color: var(--yellow); }
+    .finished-details { display: none; margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px; }
+    .finished-details.open { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- PANTALLA PRINCIPAL (MENU 2x2) -->
+  <div id="view-menu" class="view active">
+    <div class="menu-title">GESTOR DE PROYECTOS</div>
+    
+    <div class="main-grid">
+      <div class="menu-card card-blue" onclick="navigateTo('proyectos')">
+        <div class="dot-icon dot-blue"></div>
+        <div class="card-title">Proyectos en Proceso</div>
+      </div>
+      <div class="menu-card card-purple" onclick="navigateTo('calendario')">
+        <div class="dot-icon dot-purple"></div>
+        <div class="card-title">Calendario Global</div>
+      </div>
+      <div class="menu-card card-red" onclick="navigateTo('programa')">
+        <div class="dot-icon dot-red"></div>
+        <div class="card-title">Programa del Día</div>
+      </div>
+      <div class="menu-card card-yellow" onclick="navigateTo('finalizados')">
+        <div class="dot-icon dot-yellow"></div>
+        <div class="card-title">Proyectos Finalizados</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VISTA 1: PROYECTOS EN PROCESO -->
+  <div id="view-proyectos" class="view">
+    <div class="header-bar">
+      <button class="back-btn" onclick="navigateTo('menu')">← Volver</button>
+      <h2>Proyectos en Proceso</h2>
+      <div></div>
+    </div>
+
+    <div class="project-card">
+      <h3 style="margin-bottom: 12px;">Nuevo Proyecto</h3>
+      <div class="form-group">
+        <label>Nombre del Cliente</label>
+        <input type="text" id="client-name" placeholder="Ej. Juan Pérez">
+      </div>
+      <div class="form-group">
+        <label>Dirección</label>
+        <input type="text" id="client-address" placeholder="Ej. Av. Principal 123">
+      </div>
+      <div class="form-group">
+        <label>Teléfono de Contacto</label>
+        <input type="tel" id="client-phone" placeholder="Ej. +52 55 1234 5678">
+      </div>
+      <button class="btn-submit" onclick="crearNuevoProyecto()">Guardar Proyecto</button>
+    </div>
+
+    <h3 style="margin: 20px 0 10px 0;">Lista de Proyectos Activos</h3>
+    <div id="lista-proyectos-activos"></div>
+  </div>
+
+  <!-- VISTA 2: CALENDARIO GLOBAL -->
+  <div id="view-calendario" class="view">
+    <div class="header-bar">
+      <button class="back-btn" onclick="navigateTo('menu')">← Volver</button>
+      <h2>Calendario Global</h2>
+      <div></div>
+    </div>
+
+    <div class="project-card" style="border-color: var(--purple);">
+      <h3 style="margin-bottom: 12px; color: var(--purple);">Agendar Compromiso</h3>
+      
+      <div class="form-group">
+        <label>1. Fecha (Calendario)</label>
+        <input type="date" id="event-date">
+      </div>
+      
+      <div class="form-group">
+        <label>2. Asunto (¿Qué vas a hacer?)</label>
+        <textarea id="event-subject" rows="3" placeholder="Ej. Cita de revisión de avance / Llamada de coordinación"></textarea>
+      </div>
+
+      <button class="btn-submit" style="background: var(--purple);" onclick="crearEventoCalendario()">Agendar en Calendario</button>
+    </div>
+
+    <h3 style="margin: 20px 0 10px 0;">Eventos Agendados</h3>
+    <div id="lista-eventos-calendario"></div>
+  </div>
+
+  <!-- VISTA 3: PROGRAMA DEL DÍA -->
+  <div id="view-programa" class="view">
+    <div class="header-bar">
+      <button class="back-btn" onclick="navigateTo('menu')">← Volver</button>
+      <h2>Programa del Día</h2>
+      <div></div>
+    </div>
+    
+    <div class="project-card" style="border-color: var(--red);">
+      <div class="form-group" style="margin-bottom: 0;">
+        <label style="color: var(--red); font-weight: bold;">Seleccionar Fecha a Consultar</label>
+        <input type="date" id="daily-picker" onchange="renderProgramaDia()">
+      </div>
+    </div>
+
+    <h3 style="margin: 20px 0 10px 0;">Cosas por Hacer del Día</h3>
+    <div id="daily-tasks-container"></div>
+  </div>
+
+  <!-- VISTA 4: PROYECTOS FINALIZADOS -->
+  <div id="view-finalizados" class="view">
+    <div class="header-bar">
+      <button class="back-btn" onclick="navigateTo('menu')">← Volver</button>
+      <h2>Proyectos Finalizados</h2>
+      <div></div>
+    </div>
+    <div id="lista-proyectos-finalizados"></div>
+  </div>
+
+  <!-- VISOR DE FOTOS FLOTANTE (MODAL) -->
+  <div id="photo-modal" class="photo-modal" onclick="cerrarVisorFoto()">
+    <button class="photo-modal-close" onclick="cerrarVisorFoto()">✕ Cerrar</button>
+    <img id="modal-img" src="" alt="Vista Previa" onclick="event.stopPropagation()">
+  </div>
+
+  <script>
+    // FUNCIONES DE ALMACENAMIENTO PERSISTENTE
+    function getStoredData() {
+      const stored = localStorage.getItem('appStateData_v2');
+      if (stored) {
+        try { return JSON.parse(stored); } catch (e) { console.error(e); }
+      }
+      return { proyectos: [], eventos: [] };
+    }
+
+    let appState = getStoredData();
+
+    function saveState() {
+      try {
+        localStorage.setItem('appStateData_v2', JSON.stringify(appState));
+      } catch (e) {
+        alert('Límite de memoria alcanzado. Intenta subir fotos de menor tamaño.');
+      }
+    }
+
+    // VISOR DE FOTOS PANTALLA COMPLETA
+    function abrirVisorFoto(src) {
+      document.getElementById('modal-img').src = src;
+      document.getElementById('photo-modal').classList.add('active');
+    }
+
+    function cerrarVisorFoto() {
+      document.getElementById('photo-modal').classList.remove('active');
+      document.getElementById('modal-img').src = '';
+    }
+
+    // NAVEGACIÓN ENTRE SECCIONES
+    function navigateTo(viewId) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(`view-${viewId}`).classList.add('active');
+
+      if (viewId === 'proyectos') renderProyectosActivos();
+      if (viewId === 'calendario') renderCalendario();
+      if (viewId === 'programa') {
+        document.getElementById('daily-picker').valueAsDate = new Date();
+        renderProgramaDia();
+      }
+      if (viewId === 'finalizados') renderProyectosFinalizados();
+    }
+
+    /* ---------------- 1. PROYECTOS EN PROCESO ---------------- */
+    function crearNuevoProyecto() {
+      const cliente = document.getElementById('client-name').value.trim();
+      const direccion = document.getElementById('client-address').value.trim();
+      const telefono = document.getElementById('client-phone').value.trim();
+
+      if (!cliente) return alert('Ingresa al menos el nombre del cliente.');
+
+      appState.proyectos.push({
+        id: Date.now().toString(),
+        cliente,
+        direccion,
+        telefono,
+        estado: 'en_proceso',
+        tareas: [],
+        fotos: []
+      });
+
+      saveState();
+
+      document.getElementById('client-name').value = '';
+      document.getElementById('client-address').value = '';
+      document.getElementById('client-phone').value = '';
+
+      renderProyectosActivos();
+    }
+
+    function renderProyectosActivos() {
+      const container = document.getElementById('lista-proyectos-activos');
+      container.innerHTML = '';
+
+      const activos = appState.proyectos.filter(p => p.estado === 'en_proceso');
+
+      if (activos.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted);">No hay proyectos activos registrados.</p>';
+        return;
+      }
+
+      activos.forEach(p => {
+        if (!p.fotos) p.fotos = [];
+        const div = document.createElement('div');
+        div.className = 'project-card';
+        div.innerHTML = `
+          <div class="project-header">${p.cliente}</div>
+          <div class="project-info">📍 ${p.direccion || 'Sin dirección'}</div>
+          <div class="project-info">📞 ${p.telefono || 'Sin teléfono'}</div>
+
+          <div class="task-section">
+            <strong>Tareas del Proyecto:</strong>
+            
+            <div class="task-input-row">
+              <input type="text" id="task-text-${p.id}" placeholder="Descripción de la tarea">
+              <input type="date" id="task-date-${p.id}">
+              <button class="btn-add-task" onclick="agregarTarea('${p.id}')">Añadir</button>
+            </div>
+
+            <ul class="task-list">
+              ${p.tareas.map((t, idx) => `
+                <li class="task-item">
+                  <div class="circle-check ${t.realizada ? 'checked' : ''}" onclick="toggleTarea('${p.id}', ${idx})"></div>
+                  <span class="task-text ${t.realizada ? 'completed' : ''}">${t.texto}</span>
+                  <span class="task-date">${t.fecha || ''}</span>
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+
+          <div class="photo-section">
+            <strong>Fotografías del Avance / Galería:</strong><br>
+            <label class="btn-upload-photo">
+              📷 Agregar Fotos
+              <input type="file" accept="image/*" multiple style="display:none;" onchange="guardarFotosProyecto('${p.id}', this)">
+            </label>
+            <div class="photo-grid">
+              ${p.fotos.map(f => `<img src="${f}" class="photo-thumb" onclick="abrirVisorFoto('${f}')">`).join('')}
+            </div>
+          </div>
+
+          <button class="btn-submit" style="background: var(--green); margin-top: 14px;" onclick="marcarFinalizado('${p.id}')">Finalizar Proyecto</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function guardarFotosProyecto(projId, input) {
+      const files = Array.from(input.files);
+      if (files.length === 0) return;
+
+      const proyecto = appState.proyectos.find(p => p.id === projId);
+      if (!proyecto) return;
+
+      if (!proyecto.fotos) proyecto.fotos = [];
+
+      let procesados = 0;
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          proyecto.fotos.push(e.target.result);
+          procesados++;
+          if (procesados === files.length) {
+            saveState();
+            renderProyectosActivos();
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function agregarTarea(projId) {
+      const taskInput = document.getElementById(`task-text-${projId}`);
+      const dateInput = document.getElementById(`task-date-${projId}`);
+
+      const texto = taskInput.value.trim();
+      const fecha = dateInput.value;
+
+      if (!texto) return alert('Ingresa la descripción de la tarea.');
+
+      const proyecto = appState.proyectos.find(p => p.id === projId);
+      proyecto.tareas.push({ texto, fecha, realizada: false });
+
+      saveState();
+      renderProyectosActivos();
+    }
+
+    function toggleTarea(projId, taskIdx) {
+      const proyecto = appState.proyectos.find(p => p.id === projId);
+      if (proyecto && proyecto.tareas[taskIdx]) {
+        proyecto.tareas[taskIdx].realizada = !proyecto.tareas[taskIdx].realizada;
+        saveState();
+        renderProyectosActivos();
+      }
+    }
+
+    function marcarFinalizado(projId) {
+      const proyecto = appState.proyectos.find(p => p.id === projId);
+      if (proyecto) {
+        proyecto.estado = 'finalizado';
+        saveState();
+        renderProyectosActivos();
+      }
+    }
+
+    /* ---------------- 2. CALENDARIO GLOBAL ---------------- */
+    function crearEventoCalendario() {
+      const fecha = document.getElementById('event-date').value;
+      const asunto = document.getElementById('event-subject').value.trim();
+
+      if (!fecha || !asunto) return alert('Por favor selecciona una fecha e ingresa el asunto.');
+
+      appState.eventos.push({
+        id: Date.now().toString(),
+        fecha,
+        asunto,
+        realizada: false
+      });
+
+      saveState();
+
+      document.getElementById('event-date').value = '';
+      document.getElementById('event-subject').value = '';
+
+      renderCalendario();
+    }
+
+    function renderCalendario() {
+      const container = document.getElementById('lista-eventos-calendario');
+      container.innerHTML = '';
+
+      if (appState.eventos.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted);">No hay compromisos agendados.</p>';
+        return;
+      }
+
+      const ordenados = [...appState.eventos].sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+      ordenados.forEach((e) => {
+        const div = document.createElement('div');
+        div.className = 'project-card';
+        div.style.borderColor = 'var(--purple)';
+        div.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span class="task-date">📅 ${e.fecha}</span>
+          </div>
+          <div style="font-size: 0.95rem; color: #fff;">${e.asunto}</div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    /* ---------------- 3. PROGRAMA DEL DÍA ---------------- */
+    function renderProgramaDia() {
+      const fechaSelec = document.getElementById('daily-picker').value;
+      const container = document.getElementById('daily-tasks-container');
+      container.innerHTML = '';
+
+      let itemsDia = [];
+
+      appState.eventos.forEach((e, idx) => {
+        if (e.fecha === fechaSelec) {
+          itemsDia.push({
+            tipo: 'evento',
+            texto: e.asunto,
+            realizada: e.realizada,
+            origenId: e.id,
+            index: idx
+          });
+        }
+      });
+
+      appState.proyectos.filter(p => p.estado === 'en_proceso').forEach(p => {
+        p.tareas.forEach((t, tIdx) => {
+          if (t.fecha === fechaSelec) {
+            itemsDia.push({
+              tipo: 'proyecto',
+              cliente: p.cliente,
+              texto: t.texto,
+              realizada: t.realizada,
+              projId: p.id,
+              taskIdx: tIdx
+            });
+          }
+        });
+      });
+
+      if (itemsDia.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); text-align: center; margin-top: 20px;">No hay actividades registradas para esta fecha.</p>';
+        return;
+      }
+
+      const cardContainer = document.createElement('div');
+      cardContainer.className = 'project-card';
+      
+      let htmlList = '<ul class="task-list">';
+      itemsDia.forEach(item => {
+        if (item.tipo === 'evento') {
+          htmlList += `
+            <li class="task-item">
+              <div class="circle-check ${item.realizada ? 'checked' : ''}" onclick="toggleEventoDia('${item.origenId}')"></div>
+              <span class="task-text ${item.realizada ? 'completed' : ''}">${item.texto} <span class="tag-badge">Calendario</span></span>
+            </li>`;
+        } else {
+          htmlList += `
+            <li class="task-item">
+              <div class="circle-check ${item.realizada ? 'checked' : ''}" onclick="toggleTareaPrograma('${item.projId}', ${item.taskIdx})"></div>
+              <span class="task-text ${item.realizada ? 'completed' : ''}"><strong>[${item.cliente}]</strong> ${item.texto} <span class="tag-badge">Proyecto</span></span>
+            </li>`;
+        }
+      });
+      htmlList += '</ul>';
+
+      cardContainer.innerHTML = htmlList;
+      container.appendChild(cardContainer);
+    }
+
+    function toggleTareaPrograma(projId, taskIdx) {
+      toggleTarea(projId, taskIdx);
+      renderProgramaDia();
+    }
+
+    function toggleEventoDia(eventoId) {
+      const evento = appState.eventos.find(e => e.id === eventoId);
+      if (evento) {
+        evento.realizada = !evento.realizada;
+        saveState();
+        renderProgramaDia();
+      }
+    }
+
+    /* ---------------- 4. PROYECTOS FINALIZADOS ---------------- */
+    function renderProyectosFinalizados() {
+      const container = document.getElementById('lista-proyectos-finalizados');
+      container.innerHTML = '';
+
+      const finalizados = appState.proyectos.filter(p => p.estado === 'finalizado');
+
+      if (finalizados.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted);">No hay proyectos en el historial de finalizados.</p>';
+        return;
+      }
+
+      finalizados.forEach(p => {
+        if (!p.fotos) p.fotos = [];
+        const div = document.createElement('div');
+        div.className = 'project-card finished-card';
+        
+        let tareasHTML = '';
+        if (p.tareas.length === 0) {
+          tareasHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">No se registraron tareas individuales.</p>';
+        } else {
+          tareasHTML = '<ul class="task-list">';
+          p.tareas.forEach(t => {
+            tareasHTML += `
+              <li class="task-item">
+                <div class="circle-check checked" style="cursor: default;"></div>
+                <span class="task-text completed">${t.texto}</span>
+                <span class="task-date">${t.fecha ? t.fecha : 'Sin fecha'}</span>
+              </li>
+            `;
+          });
+          tareasHTML += '</ul>';
+        }
+
+        let fotosHTML = '';
+        if (p.fotos.length > 0) {
+          fotosHTML = `
+            <div style="margin-top: 14px; border-top: 1px solid var(--border-color); padding-top: 10px;">
+              <strong style="color: var(--yellow); font-size: 0.85rem; display: block; margin-bottom: 8px;">GALERÍA DE FOTOS REGISTRADAS:</strong>
+              <div class="photo-grid">
+                ${p.fotos.map(f => `<img src="${f}" class="photo-thumb" onclick="event.stopPropagation(); abrirVisorFoto('${f}')">`).join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        div.innerHTML = `
+          <div class="project-header" onclick="toggleDetallesFinalizados('${p.id}')">
+            <span>${p.cliente}</span>
+            <span class="toggle-icon" id="icon-${p.id}">▼ Ver historial</span>
+          </div>
+          <div class="project-info">📍 ${p.direccion || 'Sin dirección'}</div>
+          <div class="project-info">📞 ${p.telefono || 'Sin teléfono'}</div>
+
+          <div class="finished-details" id="details-${p.id}">
+            <strong style="color: var(--yellow); font-size: 0.85rem; display: block; margin-bottom: 8px;">HISTORIAL DE TRABAJOS REALIZADOS:</strong>
+            ${tareasHTML}
+            ${fotosHTML}
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function toggleDetallesFinalizados(projId) {
+      const details = document.getElementById(`details-${projId}`);
+      const icon = document.getElementById(`icon-${projId}`);
+      
+      if (details.classList.contains('open')) {
+        details.classList.remove('open');
+        icon.innerText = '▼ Ver historial';
+      } else {
+        details.classList.add('open');
+        icon.innerText = '▲ Ocultar historial';
+      }
+    }
+  </script>
+</body>
+</html>
